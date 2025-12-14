@@ -50,6 +50,13 @@ class HealthResponse(BaseModel):
     version: str
 
 
+class TodoItem(BaseModel):
+    user_id: int = Field(..., alias="userId")
+    id: int
+    title: str
+    completed: bool
+
+
 # Initialize FastAPI with metadata
 app = FastAPI(
     title="Product API Demo",
@@ -300,6 +307,28 @@ async def delete_product(product_id: int):
 
     del products_db[product_id]
     return None
+
+
+@app.get(
+    "/api/v1/todo",
+    response_model=TodoItem,
+    tags=["External"],
+    summary="Get a sample todo item",
+    description="Fetches a sample todo item from JSONPlaceholder as an example of calling another external service."
+)
+async def get_todo_item():
+    """
+    Example endpoint that calls an external API (JSONPlaceholder).
+    """
+    try:
+        response = requests.get("https://jsonplaceholder.typicode.com/todos/1", timeout=5)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Failed to reach external service: {str(e)}"
+        )
 
 
 @app.get(
