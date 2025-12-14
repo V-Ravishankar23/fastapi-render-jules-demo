@@ -1,10 +1,23 @@
 from typing import Optional, Dict, List
 from datetime import datetime
 
+import logging
 from fastapi import FastAPI, HTTPException, status, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+
+from logging_middleware import LoggingMiddleware
+
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(message)s',  # Keep only the message part for JSON logs
+    handlers=[
+        logging.StreamHandler()
+    ]
+)
 
 
 # Pydantic Models
@@ -74,6 +87,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.add_middleware(LoggingMiddleware)
 
 # In-memory database with seed data
 INITIAL_PRODUCTS = [
