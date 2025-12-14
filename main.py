@@ -5,12 +5,32 @@ from datetime import datetime
 from fastapi import FastAPI, HTTPException, status, Request, Query, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
+from pydantic_extra_types.phone_numbers import PhoneNumber
 from PIL import Image
+import validators
 
 
 # Pydantic Models
-class ProductBase(BaseModel):
+class SupplierInfoMixin(BaseModel):
+    supplier_email: Optional[str] = Field(None, description="Supplier's email address")
+    supplier_website: Optional[str] = Field(None, description="Supplier's website URL")
+    supplier_phone: Optional[PhoneNumber] = Field(None, description="Supplier's phone number")
+
+    @validator('supplier_email')
+    def validate_email(cls, v):
+        if v and not validators.email(v):
+            raise ValueError('Invalid email address')
+        return v
+
+    @validator('supplier_website')
+    def validate_website(cls, v):
+        if v and not validators.url(v):
+            raise ValueError('Invalid URL')
+        return v
+
+
+class ProductBase(SupplierInfoMixin):
     name: str = Field(..., min_length=1, max_length=100, description="Product name")
     description: Optional[str] = Field(None, max_length=500, description="Product description")
     price: float = Field(..., gt=0, description="Product price (must be greater than 0)")
@@ -21,7 +41,7 @@ class ProductCreate(ProductBase):
     pass
 
 
-class ProductUpdate(BaseModel):
+class ProductUpdate(SupplierInfoMixin):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     description: Optional[str] = Field(None, max_length=500)
     price: Optional[float] = Field(None, gt=0)
