@@ -1,3 +1,4 @@
+import requests
 from typing import Optional, Dict
 from datetime import datetime
 
@@ -133,6 +134,28 @@ async def health_check():
         "timestamp": datetime.utcnow().isoformat(),
         "version": "1.0.0"
     }
+
+
+# GitHub Status Endpoint
+@app.get(
+    "/github/status",
+    tags=["Integrations"],
+    summary="Get GitHub API status",
+    description="Fetches the current status of the GitHub API from githubstatus.com"
+)
+async def github_status():
+    """
+    Proxies a request to the GitHub status API.
+    """
+    try:
+        response = requests.get("https://www.githubstatus.com/api/v2/status.json")
+        response.raise_for_status()  # Raise an exception for bad status codes
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Could not fetch GitHub status: {e}"
+        )
 
 
 # Root Endpoint
