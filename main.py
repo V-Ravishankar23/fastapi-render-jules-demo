@@ -1,7 +1,7 @@
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 from datetime import datetime
 
-from fastapi import FastAPI, HTTPException, status, Request
+from fastapi import FastAPI, HTTPException, status, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -47,6 +47,14 @@ class HealthResponse(BaseModel):
     status: str
     timestamp: str
     version: str
+
+
+class PaginatedProducts(BaseModel):
+    total_items: int
+    total_pages: int
+    page: int
+    page_size: int
+    items: List[Product]
 
 
 # Initialize FastAPI with metadata
@@ -157,7 +165,7 @@ async def root():
 # CRUD Endpoints
 @app.get(
     "/api/v1/products",
-    response_model=list[Product],
+    response_model=PaginatedProducts,
     tags=["Products"],
     summary="List all products",
     description="Retrieve a list of all products in the catalog"
@@ -165,17 +173,19 @@ async def root():
 async def list_products(
     in_stock: Optional[bool] = None,
     min_price: Optional[float] = None,
-    max_price: Optional[float] = None
+    max_price: Optional[float] = None,
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(10, ge=1, le=100, description="Page size")
 ):
     """
-    Get all products with optional filtering.
-
+    Get all products with optional filtering and pagination.
     - **in_stock**: Filter by stock availability
     - **min_price**: Filter by minimum price
     - **max_price**: Filter by maximum price
+    - **page**: Page number for pagination
+    - **page_size**: Number of items per page
     """
     products = list(products_db.values())
-
     # Apply filters
     if in_stock is not None:
         products = [p for p in products if p["in_stock"] == in_stock]
@@ -183,8 +193,19 @@ async def list_products(
         products = [p for p in products if p["price"] >= min_price]
     if max_price is not None:
         products = [p for p in products if p["price"] <= max_price]
-
-    return products
+    # Paginate
+    total_items = len(products)
+    total_pages = (total_items + page_size - 1) // page_size
+    start_index = (page - 1) * page_size
+    end_index = start_index + page_size
+    paginated_products = products[start_index:end_index]
+    return {
+        "total_items": total_items,
+        "total_pages": total_pages,
+        "page": page,
+        "page_size": page_size,
+        "items": paginated_products
+    }
 
 
 @app.get(
