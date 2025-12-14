@@ -1,12 +1,11 @@
-import os
 from typing import Optional, Dict, List
 from datetime import datetime
+from pydantic import BaseModel, Field, EmailStr, AnyUrl
+from pydantic_extra_types.phone_numbers import PhoneNumber
 
-from fastapi import FastAPI, HTTPException, status, Request, Query, File, UploadFile
+from fastapi import FastAPI, HTTPException, status, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
-from PIL import Image
 
 
 # Pydantic Models
@@ -15,6 +14,9 @@ class ProductBase(BaseModel):
     description: Optional[str] = Field(None, max_length=500, description="Product description")
     price: float = Field(..., gt=0, description="Product price (must be greater than 0)")
     in_stock: bool = Field(default=True, description="Whether the product is in stock")
+    supplier_email: Optional[EmailStr] = Field(None, description="Supplier's email address")
+    supplier_website: Optional[AnyUrl] = Field(None, description="Supplier's website URL")
+    supplier_phone: Optional[PhoneNumber] = Field(None, description="Supplier's phone number")
 
 
 class ProductCreate(ProductBase):
@@ -26,12 +28,14 @@ class ProductUpdate(BaseModel):
     description: Optional[str] = Field(None, max_length=500)
     price: Optional[float] = Field(None, gt=0)
     in_stock: Optional[bool] = None
+    supplier_email: Optional[EmailStr] = None
+    supplier_website: Optional[AnyUrl] = None
+    supplier_phone: Optional[PhoneNumber] = None
 
 
 class Product(ProductBase):
     id: int = Field(..., description="Unique product ID")
     created_at: str = Field(..., description="Creation timestamp")
-    image_url: Optional[str] = Field(None, description="URL of the product image")
 
     class Config:
         json_schema_extra = {
@@ -42,7 +46,9 @@ class Product(ProductBase):
                 "price": 29.99,
                 "in_stock": True,
                 "created_at": "2025-12-14T10:00:00",
-                "image_url": "/uploads/1.jpg"
+                "supplier_email": "supplier@example.com",
+                "supplier_website": "https://supplier.example.com",
+                "supplier_phone": "+1234567890"
             }
         }
 
@@ -87,7 +93,10 @@ INITIAL_PRODUCTS = [
         "description": "Ergonomic wireless mouse with USB receiver",
         "price": 29.99,
         "in_stock": True,
-        "created_at": "2025-12-14T10:00:00"
+        "created_at": "2025-12-14T10:00:00",
+        "supplier_email": "contact@logitech.com",
+        "supplier_website": "https://www.logitech.com",
+        "supplier_phone": "+1-510-795-8500"
     },
     {
         "id": 2,
@@ -95,7 +104,10 @@ INITIAL_PRODUCTS = [
         "description": "RGB mechanical keyboard with blue switches",
         "price": 89.99,
         "in_stock": True,
-        "created_at": "2025-12-14T10:00:00"
+        "created_at": "2025-12-14T10:00:00",
+        "supplier_email": "support@corsair.com",
+        "supplier_website": "https://www.corsair.com",
+        "supplier_phone": "+1-888-222-4346"
     },
     {
         "id": 3,
@@ -103,7 +115,10 @@ INITIAL_PRODUCTS = [
         "description": "7-in-1 USB-C hub with HDMI and SD card reader",
         "price": 45.50,
         "in_stock": False,
-        "created_at": "2025-12-14T10:00:00"
+        "created_at": "2025-12-14T10:00:00",
+        "supplier_email": None,
+        "supplier_website": "https://www.anker.com",
+        "supplier_phone": None
     },
     {
         "id": 4,
@@ -111,7 +126,10 @@ INITIAL_PRODUCTS = [
         "description": "Adjustable aluminum laptop stand",
         "price": 39.99,
         "in_stock": True,
-        "created_at": "2025-12-14T10:00:00"
+        "created_at": "2025-12-14T10:00:00",
+        "supplier_email": "info@raindesigninc.com",
+        "supplier_website": "https://www.raindesigninc.com",
+        "supplier_phone": "+1-415-863-3826"
     }
 ]
 
@@ -324,78 +342,3 @@ async def delete_product(product_id: int):
 
     del products_db[product_id]
     return None
-
-
-# Image Upload Endpoint
-UPLOADS_DIR = "uploads"
-THUMBNAIL_SIZE = (200, 200)
-
-os.makedirs(UPLOADS_DIR, exist_ok=True)
-
-
-def get_image_extension(content_type: str) -> Optional[str]:
-    return {
-        "image/jpeg": "jpg",
-        "image/png": "png",
-        "image/webp": "webp",
-    }.get(content_type)
-
-
-@app.post(
-    "/api/v1/products/{product_id}/image",
-    response_model=Product,
-    tags=["Products"],
-    summary="Upload a product image",
-    description="Upload an image for a specific product",
-    responses={
-        200: {"description": "Image uploaded successfully"},
-        404: {"description": "Product not found"},
-        400: {"description": "Invalid image format"},
-        500: {"description": "Internal server error"}
-    }
-)
-async def upload_product_image(product_id: int, file: UploadFile = File(...)):
-    """
-    Upload an image for a product.
-
-    - **product_id**: The ID of the product to associate the image with
-    - **file**: The image file to upload (PNG, JPG, WEBP)
-    """
-    if product_id not in products_db:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Product with ID {product_id} not found"
-        )
-
-    # Validate image format
-    file_extension = get_image_extension(file.content_type)
-    if not file_extension:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid image format. Only PNG, JPG, and WEBP are supported."
-        )
-
-    file_path = os.path.join(UPLOADS_DIR, f"{product_id}.{file_extension}")
-    image_url = f"/{file_path}"
-
-    try:
-        # Save and process the image
-        with Image.open(file.file) as img:
-            img.thumbnail(THUMBNAIL_SIZE)
-            img.save(file_path)
-
-        # Update product's image URL
-        products_db[product_id]["image_url"] = image_url
-
-    except IOError:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error processing image file."
-        )
-    except Exception:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An unexpected error occurred while uploading the file."
-        )
-
-    return products_db[product_id]
