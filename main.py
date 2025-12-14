@@ -1,10 +1,11 @@
 from typing import Optional, Dict, List
 from datetime import datetime
+from pydantic import BaseModel, Field, EmailStr, AnyUrl
+from pydantic_extra_types.phone_numbers import PhoneNumber
 
 from fastapi import FastAPI, HTTPException, status, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
 
 
 # Pydantic Models
@@ -13,6 +14,9 @@ class ProductBase(BaseModel):
     description: Optional[str] = Field(None, max_length=500, description="Product description")
     price: float = Field(..., gt=0, description="Product price (must be greater than 0)")
     in_stock: bool = Field(default=True, description="Whether the product is in stock")
+    supplier_email: Optional[EmailStr] = Field(None, description="Supplier's email address")
+    supplier_website: Optional[AnyUrl] = Field(None, description="Supplier's website URL")
+    supplier_phone: Optional[PhoneNumber] = Field(None, description="Supplier's phone number")
 
 
 class ProductCreate(ProductBase):
@@ -24,6 +28,9 @@ class ProductUpdate(BaseModel):
     description: Optional[str] = Field(None, max_length=500)
     price: Optional[float] = Field(None, gt=0)
     in_stock: Optional[bool] = None
+    supplier_email: Optional[EmailStr] = None
+    supplier_website: Optional[AnyUrl] = None
+    supplier_phone: Optional[PhoneNumber] = None
 
 
 class Product(ProductBase):
@@ -38,7 +45,10 @@ class Product(ProductBase):
                 "description": "Ergonomic wireless mouse with USB receiver",
                 "price": 29.99,
                 "in_stock": True,
-                "created_at": "2025-12-14T10:00:00"
+                "created_at": "2025-12-14T10:00:00",
+                "supplier_email": "supplier@example.com",
+                "supplier_website": "https://supplier.example.com",
+                "supplier_phone": "+1234567890"
             }
         }
 
@@ -83,7 +93,10 @@ INITIAL_PRODUCTS = [
         "description": "Ergonomic wireless mouse with USB receiver",
         "price": 29.99,
         "in_stock": True,
-        "created_at": "2025-12-14T10:00:00"
+        "created_at": "2025-12-14T10:00:00",
+        "supplier_email": "contact@logitech.com",
+        "supplier_website": "https://www.logitech.com",
+        "supplier_phone": "+1-510-795-8500"
     },
     {
         "id": 2,
@@ -91,7 +104,10 @@ INITIAL_PRODUCTS = [
         "description": "RGB mechanical keyboard with blue switches",
         "price": 89.99,
         "in_stock": True,
-        "created_at": "2025-12-14T10:00:00"
+        "created_at": "2025-12-14T10:00:00",
+        "supplier_email": "support@corsair.com",
+        "supplier_website": "https://www.corsair.com",
+        "supplier_phone": "+1-888-222-4346"
     },
     {
         "id": 3,
@@ -99,7 +115,10 @@ INITIAL_PRODUCTS = [
         "description": "7-in-1 USB-C hub with HDMI and SD card reader",
         "price": 45.50,
         "in_stock": False,
-        "created_at": "2025-12-14T10:00:00"
+        "created_at": "2025-12-14T10:00:00",
+        "supplier_email": None,
+        "supplier_website": "https://www.anker.com",
+        "supplier_phone": None
     },
     {
         "id": 4,
@@ -107,7 +126,10 @@ INITIAL_PRODUCTS = [
         "description": "Adjustable aluminum laptop stand",
         "price": 39.99,
         "in_stock": True,
-        "created_at": "2025-12-14T10:00:00"
+        "created_at": "2025-12-14T10:00:00",
+        "supplier_email": "info@raindesigninc.com",
+        "supplier_website": "https://www.raindesigninc.com",
+        "supplier_phone": "+1-415-863-3826"
     }
 ]
 
