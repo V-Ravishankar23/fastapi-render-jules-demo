@@ -1,7 +1,7 @@
 from typing import Optional, Dict
 from datetime import datetime
 
-from fastapi import FastAPI, HTTPException, status, Request
+from fastapi import FastAPI, HTTPException, status, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -166,7 +166,9 @@ async def root():
 async def list_products(
     in_stock: Optional[bool] = None,
     min_price: Optional[float] = None,
-    max_price: Optional[float] = None
+    max_price: Optional[float] = None,
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(10, ge=1, le=100, description="Page size")
 ):
     """
     Get all products with optional filtering.
@@ -185,7 +187,12 @@ async def list_products(
     if max_price is not None:
         products = [p for p in products if p["price"] <= max_price]
 
-    return products
+    # Apply pagination
+    start_index = (page - 1) * page_size
+    end_index = start_index + page_size
+    paginated_products = products[start_index:end_index]
+
+    return paginated_products
 
 
 @app.get(
