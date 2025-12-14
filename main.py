@@ -5,7 +5,6 @@ from fastapi import FastAPI, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
-import requests
 
 
 # Pydantic Models
@@ -302,30 +301,3 @@ async def delete_product(product_id: int):
     return None
 
 
-@app.get(
-    "/api/v1/github-status",
-    tags=["External"],
-    summary="Check GitHub API status",
-    description="Fetches the current status of GitHub's API as an example of calling external services"
-)
-async def check_github_status():
-    """
-    Example endpoint that calls an external API (GitHub).
-
-    This demonstrates integration with external services and validates
-    that the API can make outbound HTTP requests.
-    """
-    try:
-        response = requests.get("https://api.github.com/status", timeout=5)
-        response.raise_for_status()
-        return {
-            "external_service": "GitHub API",
-            "status": "reachable",
-            "status_code": response.status_code,
-            "checked_at": datetime.utcnow().isoformat()
-        }
-    except requests.RequestException as e:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Failed to reach external service: {str(e)}"
-        )
