@@ -1,12 +1,21 @@
 import os
 from typing import Optional, Dict, List
 from datetime import datetime
+import asyncio
+import logging
 
 from fastapi import FastAPI, HTTPException, status, Request, Query, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from PIL import Image
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 
 # Pydantic Models
@@ -117,6 +126,49 @@ INITIAL_PRODUCTS = [
 
 products_db: Dict[int, dict] = {product["id"]: product for product in INITIAL_PRODUCTS}
 next_id = max(products_db.keys()) + 1 if products_db else 1
+
+
+# Background task for periodic logging
+async def periodic_logger():
+    """
+    Background task that logs information every 10 seconds.
+    This demonstrates how logs appear in the Render UI.
+    """
+    counter = 0
+    while True:
+        counter += 1
+        logger.info(f"Periodic log message #{counter} - API is running smoothly")
+        logger.info(f"Current product count: {len(products_db)} products in database")
+
+        # Log different levels to show variety
+        if counter % 3 == 0:
+            logger.warning(f"Warning log example #{counter // 3} - This is a sample warning")
+        if counter % 5 == 0:
+            logger.error(f"Error log example #{counter // 5} - This is a sample error (not a real error!)")
+
+        await asyncio.sleep(10)  # Log every 10 seconds
+
+
+# Startup event to begin background logging
+@app.on_event("startup")
+async def startup_event():
+    """
+    Start the periodic logging task when the application starts.
+    """
+    logger.info("=" * 60)
+    logger.info("FastAPI application starting up!")
+    logger.info("Background logging task initiated")
+    logger.info("Logs will appear every 10 seconds in Render UI")
+    logger.info("=" * 60)
+    asyncio.create_task(periodic_logger())
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """
+    Log when the application shuts down.
+    """
+    logger.info("FastAPI application shutting down...")
 
 
 # Custom Exception Handlers
