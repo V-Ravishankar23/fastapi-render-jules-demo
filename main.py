@@ -137,14 +137,29 @@ async def periodic_logger():
     counter = 0
     while True:
         counter += 1
+
+        # Regular info logs (most common)
         logger.info(f"Periodic log message #{counter} - API is running smoothly")
         logger.info(f"Current product count: {len(products_db)} products in database")
 
-        # Log different levels to show variety
+        # Success patterns (every 2 cycles)
+        if counter % 2 == 0:
+            logger.info(f"✓ Health check passed - All systems operational")
+            logger.info(f"SUCCESS: Database connection verified at {datetime.utcnow().isoformat()}")
+
+        # Warning patterns (every 4 cycles)
+        if counter % 4 == 0:
+            logger.warning(f"WARNING: Memory usage at 75% - monitoring closely")
+            logger.warning(f"WARN: Slow response time detected: 1.2s (threshold: 1.0s)")
+
+        # Error patterns (every 7 cycles)
+        if counter % 7 == 0:
+            logger.error(f"ERROR: Failed to connect to external API - retrying...")
+            logger.error(f"CRITICAL: Rate limit approaching - 95% of quota used")
+
+        # Debug/trace patterns (every 3 cycles)
         if counter % 3 == 0:
-            logger.warning(f"Warning log example #{counter // 3} - This is a sample warning")
-        if counter % 5 == 0:
-            logger.error(f"Error log example #{counter // 5} - This is a sample error (not a real error!)")
+            logger.debug(f"DEBUG: Cache hit ratio: 87% (1234 hits, 189 misses)")
 
         await asyncio.sleep(10)  # Log every 10 seconds
 
