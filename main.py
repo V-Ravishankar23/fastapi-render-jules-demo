@@ -3,6 +3,7 @@ from typing import Optional, Dict, List
 from datetime import datetime
 import asyncio
 import logging
+import random
 
 from fastapi import FastAPI, HTTPException, status, Request, Query, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -131,8 +132,8 @@ next_id = max(products_db.keys()) + 1 if products_db else 1
 # Background task for periodic logging
 async def periodic_logger():
     """
-    Background task that logs information every 10 seconds.
-    This demonstrates how logs appear in the Render UI.
+    Background task that logs information at random intervals (0.5-3 seconds).
+    This demonstrates how logs appear in the Render UI in real-time.
     """
     counter = 0
     while True:
@@ -161,7 +162,8 @@ async def periodic_logger():
         if counter % 3 == 0:
             logger.debug(f"DEBUG: Cache hit ratio: 87% (1234 hits, 189 misses)")
 
-        await asyncio.sleep(10)  # Log every 10 seconds
+        # Random interval between 0.5 and 3 seconds
+        await asyncio.sleep(random.uniform(0.5, 3.0))
 
 
 # Startup event to begin background logging
@@ -173,7 +175,7 @@ async def startup_event():
     logger.info("=" * 60)
     logger.info("FastAPI application starting up!")
     logger.info("Background logging task initiated")
-    logger.info("Logs will appear every 10 seconds in Render UI")
+    logger.info("Logs will appear at random intervals (0.5-3s) in Render UI for real-time monitoring")
     logger.info("=" * 60)
     asyncio.create_task(periodic_logger())
 
