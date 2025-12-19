@@ -7,7 +7,9 @@ import random
 
 from fastapi import FastAPI, HTTPException, status, Request, Query, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
+import csv
+import io
 from pydantic import BaseModel, Field
 from PIL import Image
 
@@ -236,6 +238,46 @@ async def root():
 
 
 # CRUD Endpoints
+@app.get(
+    "/api/v1/products/export",
+    tags=["Products"],
+    summary="Export products to CSV",
+    description="Generates a CSV file of all products",
+    response_class=StreamingResponse
+)
+async def export_products_to_csv():
+    """
+    Exports all products to a CSV file.
+    """
+    products = list(products_db.values())
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # Write header
+    headers = ["id", "name", "description", "price", "in_stock", "created_at"]
+    writer.writerow(headers)
+
+    # Write product data
+    for product in products:
+        writer.writerow([
+            product.get("id"),
+            product.get("name"),
+            product.get("description"),
+            product.get("price"),
+            product.get("in_stock"),
+            product.get("created_at")
+        ])
+
+    output.seek(0)
+
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=products.csv"}
+    )
+
+
 @app.get(
     "/api/v1/products",
     response_model=PaginatedProducts,
